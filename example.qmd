@@ -1,0 +1,112 @@
+---
+title: "Least Squares Examples"
+author: "xvzf"
+format: 
+  html:
+    fig-width: 12
+    fig-height: 12
+    code-fold: true
+---
+
+## Julia 
+
+```{julia}
+using Statistics 
+using LinearAlgebra 
+
+Y = [3.22, 4.87, 0.12, 2.31, 4.25, 2.24, 2.81, 
+3.71, 3.11, 0.9, 4.39, 4.36, 1.26, 3.13, 4.05, 2.28, 3.6, 5.39, 
+4.12, 3.16, 4.4, 1.18, 2.54, 4.89]
+X = [3.74, 
+3.66, 0.78, 2.4, 2.18, 1.96, 0.2, 2.5, 3.5, 1.35, 2.36, 3.13, 
+1.22, 1, 1.29, 0.95, 1.05, 2.92, 1.76, 0.51, 2.17, 1.99, 1.53, 
+2.6]
+
+# Least squares (standard)
+X1 = hcat(ones(24,1), X)
+(inv((X1)' * X1) * (X1)') * Y # <- love this compact notation XD
+
+# Least squares (horizontal)
+Y1 = hcat(ones(24,1), Y)
+(inv((Y1)' * Y1) * (Y1)') * X # x= 0.8203 + 0.3547y #then solve for y; y= −2.31 + 2.82x
+
+# Orthogonal
+xc = X .- mean(X)
+yc = Y .- mean(Y)
+A = hcat(ones(24,1), xc)
+SVD = svd(hcat(A, yc))
+sigma2 = (svdvals(SVD)[end])^2
+b1 = inv((A)'*A .- sigma2 * Matrix{Float64}(I, 2, 2)) * (A)' * yc
+b0 = mean(Y) - b1[end] * mean(X)
+slope = b1[end] 
+intercept = b0
+println("slope: ", slope) #[1] 1.873954
+println("intercept: ", intercept) #[1] -0.4715572
+```
+
+## Python
+```{python}
+import numpy as np
+
+Y = np.array([3.22, 4.87, 0.12, 2.31, 4.25, 2.24, 2.81, 
+3.71, 3.11, 0.9, 4.39, 4.36, 1.26, 3.13, 4.05, 2.28, 3.6, 5.39, 
+4.12, 3.16, 4.4, 1.18, 2.54, 4.89])
+X = np.array([3.74, 
+3.66, 0.78, 2.4, 2.18, 1.96, 0.2, 2.5, 3.5, 1.35, 2.36, 3.13, 
+1.22, 1, 1.29, 0.95, 1.05, 2.92, 1.76, 0.51, 2.17, 1.99, 1.53, 
+2.6])
+
+# Least squares (standard)
+X1 = np.column_stack([np.ones(24), X])
+np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(X1), X1)), np.transpose(X1)), Y) # lm(df$Y ~ df$X)
+
+# Least squares (horizontal)
+Y1 = np.column_stack([np.ones(24), Y])
+np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(Y1), Y1)), np.transpose(Y1)), X) # lm(df$X ~ df$Y) # x= 0.8203 + 0.3547y #then solve for y ;y= −2.31 + 2.82x
+
+# Least squares (orthogonal) # https://stats.stackexchange.com/questions/584869/total-least-squares-estimator
+xc = X - np.mean(X)
+yc = Y - np.mean(Y)
+A = np.column_stack([np.ones(24), xc])
+u, s, vh = np.linalg.svd(np.column_stack([A, yc]))
+sigma2 = (s[-1:])**2
+b1 = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(A),A) - sigma2 * np.eye(2)), np.transpose(A)), yc)
+b0 = np.mean(Y) - b1[1]*np.mean(X)
+slope = b1[1] 
+intercept = b0
+slope #[1] 1.873954
+intercept #[1] -0.4715572
+```
+
+## R
+```{r}
+Y = c(3.22, 4.87, 0.12, 2.31, 4.25, 2.24, 2.81, 
+3.71, 3.11, 0.9, 4.39, 4.36, 1.26, 3.13, 4.05, 2.28, 3.6, 5.39, 
+4.12, 3.16, 4.4, 1.18, 2.54, 4.89) 
+X = c(3.74, 
+3.66, 0.78, 2.4, 2.18, 1.96, 0.2, 2.5, 3.5, 1.35, 2.36, 3.13, 
+1.22, 1, 1.29, 0.95, 1.05, 2.92, 1.76, 0.51, 2.17, 1.99, 1.53, 
+2.6)
+X1 <- cbind(1, X)
+X <- X
+# Least squares (standard)
+solve(t(X1) %*% X1) %*% t(X1) %*% Y # lm(df$Y ~ df$X)
+
+# Least squares (horizontal)
+Y1 <- cbind(1, Y)
+solve(t(Y1) %*% Y1) %*% t(Y1) %*% X # lm(df$X ~ df$Y) # x= 0.8203 + 0.3547y #then solve for y ;y= −2.31 + 2.82x
+
+# Least squares (orthogonal) # https://stats.stackexchange.com/questions/584869/total-least-squares-estimator
+xc <- X - mean(X)
+yc <- Y - mean(Y)
+A <- model.matrix(~ xc)
+SVD <- svd(cbind(A, yc))
+sigma2 <- tail(SVD$d, 1)^2
+b1 <- solve(crossprod(A) - sigma2 * diag(2)) %*% t(A) %*% yc
+b0 <- mean(Y) - b1[2]*mean(X)
+slope <- b1[2] 
+intercept <- b0
+slope #[1] 1.873954
+intercept #[1] -0.4715572
+```
+
